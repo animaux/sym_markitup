@@ -20,14 +20,15 @@ miu = {
 jQuery(document).ready(function(){
 	jQuery('textarea.markdown, textarea.markdown_extra, textarea.markdown_extra_with_smartypants, textarea.markdown_with_purifier').each(function(){
 		Symphony.MarkItUp.field = jQuery(this).closest('.field').attr('id').substring(6);
-		jQuery(this).markItUp({
-			nameSpace:          'markdown', // Useful to prevent multi-instances CSS conflict
-			onShiftEnter:       {keepDefault:false, openWith:'\n\n'},
-			markupSet: Symphony.MarkItUp.buttons.filter(
-					function(value){
-						return Symphony.MarkItUp.fields[Symphony.MarkItUp.field].indexOf(value.name) !== -1;
-					}
-				)
-		});
+		if (typeof (Symphony.MarkItUp.fields[Symphony.MarkItUp.field]) != 'undefined')
+			jQuery(this).markItUp({
+				nameSpace:          'markdown', // Useful to prevent multi-instances CSS conflict
+				onShiftEnter:       {keepDefault:false, openWith:'\n\n'},
+				markupSet: Symphony.MarkItUp.buttons.filter(
+						function(value){
+							return Symphony.MarkItUp.fields[Symphony.MarkItUp.field].indexOf(value.name) !== -1;
+						}
+					)
+			});
 	});
 });

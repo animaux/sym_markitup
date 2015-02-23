@@ -36,6 +36,7 @@
 .markItUpModal{
 	position: absolute;
 	background: white;
+	border: solid 1px #ccc;
 	width: 100%;
 	min-height: 100%;
 	top: 0;
