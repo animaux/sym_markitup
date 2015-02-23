@@ -3,7 +3,7 @@
 // v 1.1.x
 // Dual licensed under the MIT and GPL licenses.
 // ----------------------------------------------------------------------------
-// Copyright (C) 2007-2011 Jay Salvat
+// Copyright (C) 2007-2012 Jay Salvat
 // http://markitup.jaysalvat.com/
 // ----------------------------------------------------------------------------
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -26,19 +26,26 @@
 // ----------------------------------------------------------------------------
 (function($) {
 	$.fn.markItUp = function(settings, extraSettings) {
-		var options, ctrlKey, shiftKey, altKey;
-		ctrlKey = shiftKey = altKey = false;
-	
+		var method, params, options, ctrlKey, shiftKey, altKey; ctrlKey = shiftKey = altKey = false;
+
+		if (typeof settings == 'string') {
+			method = settings;
+			params = extraSettings;
+		} 
+
 		options = {	id:						'',
 					nameSpace:				'',
 					root:					'',
+					previewHandler:			false,
 					previewInWindow:		'', // 'width=800, height=600, resizable=yes, scrollbars=yes'
+					previewInElement:		'',
 					previewAutoRefresh:		true,
 					previewPosition:		'after',
 					previewTemplatePath:	'~/templates/preview.html',
 					previewParser:			false,
 					previewParserPath:		'',
 					previewParserVar:		'data',
+					previewParserAjaxType:	'POST',
 					resizeHandle:			true,
 					beforeInsert:			'',
 					afterInsert:			'',
@@ -60,6 +67,47 @@
 			});
 		}
 
+		// Quick patch to keep compatibility with jQuery 1.9
+		var uaMatch = function(ua) {
+			ua = ua.toLowerCase();
+
+			var match = /(chrome)[ \/]([\w.]+)/.exec(ua) ||
+				/(webkit)[ \/]([\w.]+)/.exec(ua) ||
+				/(opera)(?:.*version|)[ \/]([\w.]+)/.exec(ua) ||
+				/(msie) ([\w.]+)/.exec(ua) ||
+				ua.indexOf("compatible") < 0 && /(mozilla)(?:.*? rv:([\w.]+)|)/.exec(ua) ||
+				[];
+
+			return {
+				browser: match[ 1 ] || "",
+				version: match[ 2 ] || "0"
+			};
+		};
+		var matched = uaMatch( navigator.userAgent );
+		var browser = {};
+
+		if (matched.browser) {
+			browser[matched.browser] = true;
+			browser.version = matched.version;
+		}
+		if (browser.chrome) {
+			browser.webkit = true;
+		} else if (browser.webkit) {
+			browser.safari = true;
+		}
+
+		$(document).on('click','.markItUpModal .item',function(){
+			var $this = $(this);
+			$this.addClass('selected');
+			$this.siblings().removeClass('selected');
+			$this.siblings('input').val($this.data('value'));
+		});
+
+		$(document).on('click','.markItUpModal .close',function(e){
+			e.preventDefault();
+			$('.markItUpModal').remove();
+		});
+
 		return this.each(function() {
 			var $$, textarea, levels, scrollPosition, caretPosition, caretOffset,
 				clicked, hash, header, footer, previewWindow, template, iFrame, abort;
@@ -72,6 +120,20 @@
 
 			options.previewParserPath = localize(options.previewParserPath);
 			options.previewTemplatePath = localize(options.previewTemplatePath);
+
+			if (method) {
+				switch(method) {
+					case 'remove':
+						remove();
+					break;
+					case 'insert':
+						markup(params);
+					break;
+					default: 
+						$.error('Method ' +  method + ' does not exist on jQuery.markItUp');
+				}
+				return;
+			}
 
 			// apply the computed path to ~/
 			function localize(data, inText) {
@@ -106,29 +168,29 @@
 				footer = $('<div class="markItUpFooter"></div>').insertAfter($$);
 
 				// add the resize handle after textarea
-				if (options.resizeHandle === true && $.browser.safari !== true) {
+				if (options.resizeHandle === true && browser.safari !== true) {
 					resizeHandle = $('<div class="markItUpResizeHandle"></div>')
 						.insertAfter($$)
-						.bind("mousedown", function(e) {
+						.bind("mousedown.markItUp", function(e) {
 							var h = $$.height(), y = e.clientY, mouseMove, mouseUp;
 							mouseMove = function(e) {
 								$$.css("height", Math.max(20, e.clientY+h-y)+"px");
 								return false;
 							};
 							mouseUp = function(e) {
-								$("html").unbind("mousemove", mouseMove).unbind("mouseup", mouseUp);
+								$("html").unbind("mousemove.markItUp", mouseMove).unbind("mouseup.markItUp", mouseUp);
 								return false;
 							};
-							$("html").bind("mousemove", mouseMove).bind("mouseup", mouseUp);
+							$("html").bind("mousemove.markItUp", mouseMove).bind("mouseup.markItUp", mouseUp);
 					});
 					footer.append(resizeHandle);
 				}
 
 				// listen key events
-				$$.keydown(keyPressed).keyup(keyPressed);
+				$$.bind('keydown.markItUp', keyPressed).bind('keyup', keyPressed);
 				
 				// bind an event to catch external calls
-				$$.bind("insertion", function(e, settings) {
+				$$.bind("insertion.markItUp", function(e, settings) {
 					if (settings.target !== false) {
 						get();
 					}
@@ -138,9 +200,13 @@
 				});
 
 				// remember the last focus
-				$$.focus(function() {
+				$$.bind('focus.markItUp', function() {
 					$.markItUp.focused = this;
 				});
+
+				if (options.previewInElement) {
+					refreshPreview();
+				}
 			}
 
 			// recursively build header with dropMenus from markupset
@@ -149,7 +215,7 @@
 				$('li:hover > ul', ul).css('display', 'block');
 				$.each(markupSet, function() {
 					var button = this, t = '', title, li, j;
-					title = (button.key) ? (button.name||'')+' [Ctrl+'+button.key+']' : (button.name||'');
+					button.title ? title = (button.key) ? (button.title||'')+' [Ctrl+'+button.key+']' : (button.title||'') : title = (button.key) ? (button.name||'')+' [Ctrl+'+button.key+']' : (button.name||'');
 					key   = (button.key) ? 'accesskey="'+button.key+'"' : '';
 					if (button.separator) {
 						li = $('<li class="markItUpSeparator">'+(button.separator||'')+'</li>').appendTo(ul);
@@ -158,29 +224,28 @@
 						for (j = levels.length -1; j >= 0; j--) {
 							t += levels[j]+"-";
 						}
-						li = $('<li class="markItUpButton markItUpButton'+t+(i)+' '+(button.className||'')+'"><a href="" '+key+' title="'+title+'">'+(button.name||'')+'</a></li>')
-						.bind("contextmenu", function() { // prevent contextmenu on mac and allow ctrl+click
+						li = $('<li class="markItUpButton markItUpButton'+t+(i)+' '+(button.className||'')+'"><a href="#" '+key+' title="'+title+'">'+(button.name||'')+'</a></li>')
+						.bind("contextmenu.markItUp", function() { // prevent contextmenu on mac and allow ctrl+click
 							return false;
-						}).click(function() {
-							return false;
-						}).bind("focusin", function(){
+						}).bind('click.markItUp', function(e) {
+							e.preventDefault();
+						}).bind("focusin.markItUp", function(){
                             $$.focus();
-						}).mouseup(function() {
+						}).bind('mouseup', function(e) {
 							if (button.call) {
-								eval(button.call)();
+								eval(button.call)(e); // Pass the mouseup event to custom delegate
 							}
 							setTimeout(function() { markup(button) },1);
 							return false;
-						}).hover(function() {
+						}).bind('mouseenter.markItUp', function() {
 								$('> ul', this).show();
 								$(document).one('click', function() { // close dropmenu if click outside
 										$('ul ul', header).hide();
 									}
 								);
-							}, function() {
+						}).bind('mouseleave.markItUp', function() {
 								$('> ul', this).hide();
-							}
-						).appendTo(ul);
+						}).appendTo(ul);
 						if (button.dropMenu) {
 							levels.push(i);
 							$(li).addClass('markItUpDropMenu').append(dropMenus(button.dropMenu));
@@ -206,19 +271,69 @@
 						}
 					);
 					// [![prompt]!], [![prompt:!:value]!]
-					string = string.replace(/\[\!\[([\s\S]*?)\]\!\]/g,
-						function(x, a) {
-							var b = a.split(':!:');
-							if (abort === true) {
-								return false;
+					var regex = /\[\!\[([\s\S|]*?)\]\!\]/g;
+					var found = regex.test(string);
+					regex.lastIndex = 0;
+
+					if (found){
+						//build form
+						var $container = $("<div class='markItUpModal'><div class='close'>Close <span>X</span></div></div>");
+
+						$container.data('string',string);
+
+						// for (var i = 1; i < found.length; i++) {
+						while (found = regex.exec(string) ){
+							var b = found[1].split(':!:'); 
+
+							if (b[1] && b[1].indexOf('field-') == 0 && $('#'+b[1]+'').hasClass('field-association')){
+								var $field = $('#'+b[1]+'');
+								var $items = $field.find('.item').clone();
+								var $label = $('<label>' + b[0] + '<input name="'+b[0]+'" type="hidden" /></label>');
+								$items.find('a').remove();
+								$label.append($items);
+								$container.append($label);
+							} else if (b[1] && b[1].indexOf('|') !== -1){
+								var $label = $('<label>' + b[0] + '</label>');
+								var options = b[1].split('|');
+								var $select = $('<select name="'+b[0]+'"></select>');
+								for (var i = 0; i < options.length; i++) {
+									$select.append('<option value="'+options[i]+'">'+options[i]+'</option>');
+								};
+								$label.append($select);
+								$container.append($label);
+							} else {
+								$container.append('<label>' + b[0] + '<input name="'+b[0]+'" placeholder="'+b[1]+'" /></label>');
 							}
-							value = prompt(b[0], (b[1]) ? b[1] : '');
-							if (value === null) {
-								abort = true;
-							}
-							return value;
-						}
-					);
+						};
+						$button = $('<button class="markItUpInsert">Insert</button>');
+						$container.append($button);
+
+						// console.log($container);
+						$$.before($container);
+
+
+						$button.on('click',function(e){
+							e.preventDefault();
+
+							var $modal = $('.markItUpModal');
+							var string = $modal.data('string');
+
+							string = string.replace(/\[\!\[([\s\S|]*?)\]\!\]/g,
+								function(x, a) {
+									var b = a.split(':!:');
+									return $modal.find('*[name="'+b[0]+'"]').val();
+								}
+							);
+
+							insert(string);
+							set(caretPosition + string.length, 0);
+
+							$modal.remove();
+						});
+
+						return "";
+					}
+
 					return string;
 				}
 				return "";
@@ -249,9 +364,13 @@
 				} else {
 					string = string || selection;
 
-					var lines = selection.split(/\r?\n/), blocks = [];
+					var lines = [string], blocks = [];
 					
-					for (var l=0; l < lines.length; l++) {
+					if (multiline === true) {
+						lines = string.split(/\r?\n/);
+					}
+					
+					for (var l = 0; l < lines.length; l++) {
 						line = lines[l];
 						var trailingSpaces;
 						if (trailingSpaces = line.match(/ *$/)) {
@@ -267,10 +386,12 @@
 				block = openBlockWith + block + closeBlockWith;
 
 				return {	block:block, 
+							openBlockWith:openBlockWith,
 							openWith:openWith, 
 							replaceWith:replaceWith, 
 							placeHolder:placeHolder,
-							closeWith:closeWith
+							closeWith:closeWith,
+							closeBlockWith:closeBlockWith
 					};
 			}
 
@@ -307,9 +428,10 @@
 							lines[i] = "";
 						}
 					}
+
 					string = { block:lines.join('\n')};
 					start = caretPosition;
-					len = string.block.length + (($.browser.opera) ? n-1 : 0);
+					len = string.block.length + ((browser.opera) ? n-1 : 0);
 				} else if (ctrlKey === true) {
 					string = build(selection);
 					start = caretPosition + string.openWith.length;
@@ -330,8 +452,8 @@
 				if ((selection === '' && string.replaceWith === '')) {
 					caretOffset += fixOperaBug(string.block);
 					
-					start = caretPosition + string.openWith.length;
-					len = string.block.length - string.openWith.length - string.closeWith.length;
+					start = caretPosition + string.openBlockWith.length + string.openWith.length;
+					len = string.block.length - string.openBlockWith.length - string.openWith.length - string.closeWith.length - string.closeBlockWith.length;
 
 					caretOffset = $$.val().substring(caretPosition,  $$.val().length).length;
 					caretOffset -= fixOperaBug($$.val().substring(0, caretPosition));
@@ -366,14 +488,14 @@
 
 			// Substract linefeed in Opera
 			function fixOperaBug(string) {
-				if ($.browser.opera) {
+				if (browser.opera) {
 					return string.length - string.replace(/\n*/g, '').length;
 				}
 				return 0;
 			}
 			// Substract linefeed in IE
 			function fixIeBug(string) {
-				if ($.browser.msie) {
+				if (browser.msie) {
 					return string.length - string.replace(/\r*/g, '').length;
 				}
 				return 0;
@@ -393,7 +515,7 @@
 			function set(start, len) {
 				if (textarea.createTextRange){
 					// quick fix to make it work on Opera 9.5
-					if ($.browser.opera && $.browser.version >= 9.5 && len == 0) {
+					if (browser.opera && browser.version >= 9.5 && len == 0) {
 						return false;
 					}
 					range = textarea.createTextRange();
@@ -415,7 +537,7 @@
 				scrollPosition = textarea.scrollTop;
 				if (document.selection) {
 					selection = document.selection.createRange().text;
-					if ($.browser.msie) { // ie
+					if (browser.msie) { // ie
 						var range = document.selection.createRange(), rangeCopy = range.duplicate();
 						rangeCopy.moveToElementText(textarea);
 						caretPosition = -1;
@@ -436,7 +558,11 @@
 
 			// open preview window
 			function preview() {
-				if (!previewWindow || previewWindow.closed) {
+				if (typeof options.previewHandler === 'function') {
+					previewWindow = true;
+				} else if (options.previewInElement) {
+					previewWindow = $(options.previewInElement);
+				} else if (!previewWindow || previewWindow.closed) {
 					if (options.previewInWindow) {
 						previewWindow = window.open('', 'preview', options.previewInWindow);
 						$(window).unload(function() {
@@ -472,18 +598,21 @@
  				renderPreview();
 			}
 
-			function renderPreview() {		
+			function renderPreview() {
 				var phtml;
+				var parsedData = $$.val();
 				if (options.previewParser && typeof options.previewParser === 'function') {
-					var data = options.previewParser( $$.val() );
-					writeInPreview( localize(data, 1) ); 
+					parsedData = options.previewParser(parsedData); 
+				}
+				if (options.previewHandler && typeof options.previewHandler === 'function') {
+					options.previewHandler(parsedData);
 				} else if (options.previewParserPath !== '') {
 					$.ajax({
-						type: 'POST',
+						type: options.previewParserAjaxType,
 						dataType: 'text',
 						global: false,
 						url: options.previewParserPath,
-						data: options.previewParserVar+'='+encodeURIComponent($$.val()),
+						data: options.previewParserVar+'='+encodeURIComponent(parsedData),
 						success: function(data) {
 							writeInPreview( localize(data, 1) ); 
 						}
@@ -495,7 +624,7 @@
 							dataType: 'text',
 							global: false,
 							success: function(data) {
-								writeInPreview( localize(data, 1).replace(/<!-- content -->/g, $$.val()) );
+								writeInPreview( localize(data, 1).replace(/<!-- content -->/g, parsedData) );
 							}
 						});
 					}
@@ -504,7 +633,9 @@
 			}
 			
 			function writeInPreview(data) {
-				if (previewWindow.document) {			
+				if (options.previewInElement) {
+					$(options.previewInElement).html(data);
+				} else if (previewWindow && previewWindow.document) {			
 					try {
 						sp = previewWindow.document.documentElement.scrollTop
 					} catch(e) {
@@ -525,7 +656,7 @@
 
 				if (e.type === 'keydown') {
 					if (ctrlKey === true) {
-						li = $('a[accesskey="'+String.fromCharCode(e.keyCode)+'"]', header).parent('li');
+						li = $('a[accesskey="'+((e.keyCode == 13) ? '\\n' : String.fromCharCode(e.keyCode))+'"]', header).parent('li');
 						if (li.length !== 0) {
 							ctrlKey = false;
 							setTimeout(function() {
@@ -566,14 +697,25 @@
 				}
 			}
 
+			function remove() {
+				$$.unbind(".markItUp").removeClass('markItUpEditor');
+				$$.parent('div').parent('div.markItUp').parent('div').replaceWith($$);
+
+				var relativeRef = $$.parent('div').parent('div.markItUp').parent('div');
+				if (relativeRef.length) {
+				    relativeRef.replaceWith($$);
+				}
+				
+				$$.data('markItUp', null);
+			}
+
 			init();
 		});
 	};
 
 	$.fn.markItUpRemove = function() {
 		return this.each(function() {
-				var $$ = $(this).unbind().removeClass('markItUpEditor');
-				$$.parent('div').parent('div.markItUp').parent('div').replaceWith($$);
+				$(this).markItUp('remove');
 			}
 		);
 	};

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension id="sym_markitup" status="released" xmlns="http://symphony-cms.com/schemas/extension/1.0">
+	<name>Sym MarkItUp</name>
+	<description>adds markdown formatting shortcuts and custom functions</description>
+	<repo type="github">https://github.com/jonmifsud/sym_markitup/</repo>
+	<types>
+		<type>other</type>
+	</types>
+	<authors>
+		<author>
+			<name github="jonmifsud" symphony="gunglien">Jonathan Mifsud</name>
+			<website>http://jonmifsud.com</website>
+			<email>info@jonmifsud.com</email>
+		</author>
+		<author>
+			<name>Jonathan Hughes</name>
+			<email>jonathanbhughes@gmail.com</email>
+		</author>
+	</authors>
+	<releases>
+		<release version="2" date="2015-02-23" min="2.5">
+			- reworked the extension and added new modal styling and setting overrides
+		</release>
+		<release version="1.0" date="2011-08-19" min="2.2.2">
+			- initial release
+		</release>
+	</releases>
+</extension>
