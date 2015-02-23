@@ -76,7 +76,6 @@ class extension_sym_markitup extends Extension {
 							{separator:\'|\' },     
 							{name:\'Bold\', className:\'fa fa-bold\', key:\'B\', openWith:\'**\', closeWith:\'**\'},
 							{name:\'Italic\', className:\'fa fa-italic\', key:\'I\', openWith:\'_\', closeWith:\'_\'},
-							{name:\'Strikethrough\', className:\'fa fa-strikethrough\', key:\'I\', openWith:\'~~\', closeWith:\'~~\'},
 							{separator:\'|\' },
 							{name:\'Bulleted List\', className:\'fa fa-list-ul\', openWith:\'- \' },
 							{name:\'Numeric List\', className:\'fa fa-list-ol\', openWith:function(markItUp) {

@@ -5,7 +5,7 @@ Sym MarkItUp 2.0
 
 ## Default Editor buttons include
 
-H1, H2, H3, H4, H5, H6, **Bold**, _Italic_, ~~Strikethrough~~, unordered list, numbered list, Picture, Link, Block Quote, Code
+H1, H2, H3, H4, H5, H6, **Bold**, _Italic_, unordered list, numbered list, Picture, Link, Block Quote, Code
 
 ## Choosing which elements to add to your textarea
 
@@ -43,7 +43,7 @@ Note whatever you do will have to be processes using an XSLT ninja technique but
 
 The below is a custom element which is fetching elements from field 5, it is also asking the user which position they would want the image to be aligned. 
 
-> {name:\'Article Picture\', className:\'fa fa-image\', key:\'P\', replaceWith:\'<image id="[![Image:!:field-5]!]" align="[![Type:!:left|right|full]!]" />\'},
+	{name:\'Article Picture\', className:\'fa fa-image\', key:\'P\', replaceWith:\'<image id="[![Image:!:field-5]!]" align="[![Type:!:left|right|full]!]" />\'},
 
 The result from an Association would always be the value of that association, thus the entry id, this can then be used in XSLT to replace the element with what it is actually representing.
 
