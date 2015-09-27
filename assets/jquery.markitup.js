@@ -96,6 +96,16 @@
 			browser.safari = true;
 		}
 
+		$(document).on('click','.markItUpModal .dz-preview',function(e){
+			e.preventDefault();
+			e.stopPropagation();
+			var $this = $(this);
+			$this.addClass('selected');
+			$this.siblings().removeClass('selected');
+			console.log($this.find('.dz-filename').text());
+			$this.closest('.markItUpModal').find('input').val($this.find('.dz-filename').text());
+		});
+
 		$(document).on('click','.markItUpModal .item',function(){
 			var $this = $(this);
 			$this.addClass('selected');
@@ -290,6 +300,15 @@
 								var $items = $field.find('.item').clone();
 								var $label = $('<label>' + b[0] + '<input name="'+b[0]+'" type="hidden" /></label>');
 								$items.find('a').remove();
+								$label.append($items);
+								$container.append($label);
+							} else  if (b[1] && b[1].indexOf('field-') == 0 && $('#'+b[1]+'').hasClass('field-s3_file_upload')){
+								var $field = $('#'+b[1]+'');
+								var $items = $field.find('.dropzone-previews').clone();
+								var $label = $('<label>' + b[0] + '<input name="'+b[0]+'" type="hidden" /></label>');
+								$items.find('a').before($items.find('a').text());
+								$items.find('a').remove();
+								$items.find('input').remove();
 								$label.append($items);
 								$container.append($label);
 							} else if (b[1] && b[1].indexOf('|') !== -1){
