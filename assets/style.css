@@ -42,6 +42,7 @@
 	top: 0;
 	padding: 1.8em;
 	box-sizing: border-box;
+	z-index: 100;
 }
 
 .markItUpModal button{
@@ -146,6 +147,30 @@
 	visibility: visible;
 	display: inline-block;
 }*/
+
+/*show titles on hover*/
+
+.markItUpButton:hover a {
+    display: block;
+    position: absolute;
+    background: #fff;
+    padding: 5px;
+    top: -30px;
+    white-space: nowrap;
+    left: 0;
+}
+
+.markItUpButton:hover a::before {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 5px 0 5px;
+    border-color: rgba(63,105,165,.15) transparent transparent transparent;
+    content: '';
+    position: absolute;
+    left: 7px;
+    bottom: -6px;
+}
 
 /* -------------------------------------------------------------------
 // markItUp!

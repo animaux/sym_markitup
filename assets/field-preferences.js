@@ -26,8 +26,10 @@
 
 				var $fieldInstance = $this.closest('li.instance');
 
-				var currentHeight = parseInt($fieldInstance.css('max-height'), 10);
-				$fieldInstance.css('max-height', (currentHeight + $label.outerHeight()) + "px");
+				if (!$fieldInstance.hasClass('collapsed')){
+					var currentHeight = parseInt($fieldInstance.css('max-height'), 10);
+					$fieldInstance.css('max-height', (currentHeight + $label.outerHeight()) + "px");
+				}
 			}
 		});
 

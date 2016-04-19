@@ -18,6 +18,9 @@
 		</author>
 	</authors>
 	<releases>
+		<release version="2.1" date="2016-04-19" min="2.5">
+			- Added hover labels for each icon
+		</release>
 		<release version="2" date="2015-02-23" min="2.5">
 			- reworked the extension and added new modal styling and setting overrides
 		</release>

@@ -59,7 +59,7 @@ class extension_sym_markitup extends Extension {
 
 		if(isset(Administration::instance()->Page->_context['section_handle']) && in_array(Administration::instance()->Page->_context['page'], array('new', 'edit'))){	
 			Administration::instance()->Page->addStylesheetToHead('//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css', 'screen', 221);
-			Administration::instance()->Page->addStylesheetToHead(URL . '/extensions/sym_markitup/assets/style.css', 'screen', 222);
+			Administration::instance()->Page->addStylesheetToHead(URL . '/extensions/sym_markitup/assets/style.css?1', 'screen', 222);
 			Administration::instance()->Page->addScriptToHead(URL . '/extensions/sym_markitup/assets/jquery.markitup.js', 223);
 			Administration::instance()->Page->addScriptToHead(URL . '/extensions/sym_markitup/assets/init.js', 224);
 		}

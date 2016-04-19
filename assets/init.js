@@ -18,7 +18,7 @@ miu = {
 }
 
 jQuery(document).ready(function(){
-	jQuery('textarea.markdown, textarea.markdown_extra, textarea.markdown_extra_with_smartypants, textarea.markdown_with_purifier').each(function(){
+	jQuery('textarea.markdown, textarea.markdown_extra, textarea.markdown_extra_with_smartypants, textarea.markdown_with_purifier, textarea.non_xhtml_attributes_msp').each(function(){
 		Symphony.MarkItUp.field = jQuery(this).closest('.field').attr('id').substring(6);
 		if (typeof (Symphony.MarkItUp.fields[Symphony.MarkItUp.field]) != 'undefined')
 			jQuery(this).markItUp({
